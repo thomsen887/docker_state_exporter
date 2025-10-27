@@ -59,6 +59,9 @@ var (
 	finishedatDesc = descSource{
 		namespace + "finishedat",
 		"Time when the Container finished."}
+	exitcodeDesc = descSource{
+    	namespace + "exitcode",
+    	"Container last exit code."}
 	restartcountDesc = descSource{
 		"container_restartcount",
 		"Number of times the container has been restarted"}
@@ -69,6 +72,7 @@ func (c *dockerHealthCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- statusDesc.Desc(nil)
 	ch <- oomkilledDesc.Desc(nil)
 	ch <- startedatDesc.Desc(nil)
+	ch <- exitcodeDesc.Desc(nil)
 	ch <- finishedatDesc.Desc(nil)
 	ch <- restartcountDesc.Desc(nil)
 }
@@ -129,6 +133,14 @@ func (c *dockerHealthCollector) collectMetrics(ch chan<- prometheus.Metric) {
 		errCheck(err)
 		ch <- prometheus.MustNewConstMetric(startedatDesc.Desc(labels), prometheus.GaugeValue, float64(startedat.Unix()))
 		ch <- prometheus.MustNewConstMetric(finishedatDesc.Desc(labels), prometheus.GaugeValue, float64(finishedat.Unix()))
+		if info.State.Status == "exited" {
+    		ch <- prometheus.MustNewConstMetric(
+        		exitcodeDesc.Desc(labels),
+        		prometheus.GaugeValue,
+        		float64(info.State.ExitCode),
+    		)
+		}
+		ch <- prometheus.MustNewConstMetric(exitcodeDesc.Desc(labels), prometheus.GaugeValue, float64(info.State.ExitCode))
 		ch <- prometheus.MustNewConstMetric(restartcountDesc.Desc(labels), prometheus.GaugeValue, float64(info.RestartCount))
 	}
 }
